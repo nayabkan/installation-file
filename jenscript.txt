@@ -1,0 +1,31 @@
+node  {
+    stage('Git checkout'){
+        git 'https://github.com/nayabkan/ci-cd1.git'
+    }
+    stage('Pushing Dockerfile to Ansible server'){
+        sshagent(['ansible_demo']){
+            sh 'ssh -o StrictHostKeyChecking=no ubuntu@172.31.48.142'
+            sh 'scp /var/lib/jenkins/workspace/pipeline-demo/* ubuntu@172.31.48.142:/home/ubuntu/'
+        }
+    }
+    stage('Docker image build'){
+        sshagent(['ansible_demo']){
+            sh 'ssh -o StrictHostKeyChecking=no ubuntu@172.31.48.142 cd /home/ubuntu/'
+            sh 'ssh -o StrictHostKeyChecking=no ubuntu@172.31.48.142 sudo docker image build -t firstimage1 .'
+        }
+    }
+    stage  ('Docker image tagging'){
+        sshagent(['ansible_demo']){
+            sh 'ssh -o StrictHostKeyChecking=no ubuntu@172.31.48.142 cd /home/ubuntu/'
+            sh 'ssh -o StrictHostKeyChecking=no ubuntu@172.31.48.142 sudo docker image tag firstimage1 nayabk97/firstimage1'
+        }
+    }
+    stage('push docker image to Dockerhub'){
+        sshagent(['ansible_demo']){
+            withCredentials([string(credentialsId: 'dockerhub1', variable: 'dockerhub_pass1')]){
+                sh "docker login -u nayabk97 -p ${dockerhub_pass1}"
+                sh 'ssh -o StrictHostKeyChecking=no ubuntu@172.31.48.142 sudo docker image push nayabk97/firstimage1'
+            }
+        }
+    }
+}

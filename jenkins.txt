@@ -1,0 +1,28 @@
+node {
+    
+    stage('Git checkout'){
+        git 'https://github.com/iqhlas001/CICD_Testing.git'
+    }
+    
+    stage('Pushing Docker file to ansible server '){
+        sshagent(['ansible_demo_1']) {
+            sh 'ssh -o StrictHostKeyChecking=no ubuntu@172.31.88.138'
+            sh 'scp /var/lib/jenkins/workspace/pipeline-demo/* ubuntu@172.31.88.138:/home/ubuntu/'
+        }
+    }
+    
+    stage('Docker image building '){
+        sshagent(['ansible_demo_1']) {
+            sh 'ssh -o StrictHostKeyChecking=no ubuntu@172.31.88.138 cd /home/ubuntu/'
+            sh 'ssh -o StrictHostKeyChecking=no ubuntu@172.31.88.138 sudo docker image build -t $JOB_NAME:v1.$BUILD_ID .' 
+        }  
+        
+    stage('Docker image tagging'){
+        sshagent(['ansible_demo_1']){
+             sh 'ssh -o StrictHostKeyChecking=no ubuntu@172.31.88.138 cd /home/ubuntu/'
+            sh 'ssh -o StrictHostKeyChecking=no ubuntu@172.31.88.138 sudo docker image tag $JOB_NAME:v1.$BUILD_ID iqhlas/$JOB_NAME:v1.$BUILD_ID'
+            sh 'ssh -o StrictHostKeyChecking=no ubuntu@172.31.88.138 sudo docker image tag $JOB_NAME:v1.$BUILD_ID iqhlas/$JOB_NAME:latest'
+        }
+    }
+    }
+}
